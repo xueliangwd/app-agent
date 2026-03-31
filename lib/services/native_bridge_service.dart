@@ -11,7 +11,7 @@ class NativeBridgeService {
     try {
       final result = await _channel.invokeMethod<String>('getPlatformContext');
       if (result == null || result.isEmpty) {
-        return 'iOS Native';
+        return 'Mobile Native';
       }
       return result;
     } catch (_) {

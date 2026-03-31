@@ -1,11 +1,12 @@
 # App Agent
 
-一个使用 Flutter 从 0 到 1 搭建的 Agent App Demo，交互形态参考豆包，当前优先支持 iOS。
+一个使用 Flutter 从 0 到 1 搭建的 Agent App Demo，交互形态参考豆包，当前支持 iOS 与 Android 双端运行。
 
 ## 已实现
 
 - 会话列表 + 会话详情双栏布局
 - 移动端单栏跳转，桌面/平板双栏展示
+- iOS / Android 双端工程
 - 流式输出，回复会逐段渲染
 - 文本消息
 - Markdown 消息，支持标题、列表、表格
@@ -84,6 +85,12 @@ fvm flutter run \
 fvm flutter run -d ios
 ```
 
+如果跑 Android 设备或模拟器：
+
+```bash
+fvm flutter run -d android
+```
+
 ## 目录结构
 
 ```text
@@ -94,6 +101,8 @@ lib/
   services/
 ios/
   Runner/AppDelegate.swift
+android/
+  app/src/main/kotlin/com/example/app_agent/MainActivity.kt
 ```
 
 ## 下一步建议
