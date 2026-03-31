@@ -1,5 +1,5 @@
-class OpenAIResponse {
-  const OpenAIResponse({
+class LlmResponse {
+  const LlmResponse({
     required this.id,
     required this.outputText,
   });

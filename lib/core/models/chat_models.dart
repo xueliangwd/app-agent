@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'ai_provider.dart';
+
 enum SenderRole { user, assistant, system }
 
 enum MessageType { text, markdown, richText, lineChart, barChart, pieChart }
@@ -10,7 +12,7 @@ class ChatSession {
     required this.title,
     required this.messages,
     required this.updatedAt,
-    this.lastResponseId,
+    this.lastModel,
     this.pinned = false,
   });
 
@@ -18,7 +20,7 @@ class ChatSession {
   final String title;
   final List<ChatMessage> messages;
   final DateTime updatedAt;
-  final String? lastResponseId;
+  final AiModelOption? lastModel;
   final bool pinned;
 
   String get preview =>
@@ -29,7 +31,7 @@ class ChatSession {
     String? title,
     List<ChatMessage>? messages,
     DateTime? updatedAt,
-    String? lastResponseId,
+    AiModelOption? lastModel,
     bool? pinned,
   }) {
     return ChatSession(
@@ -37,7 +39,7 @@ class ChatSession {
       title: title ?? this.title,
       messages: messages ?? this.messages,
       updatedAt: updatedAt ?? this.updatedAt,
-      lastResponseId: lastResponseId ?? this.lastResponseId,
+      lastModel: lastModel ?? this.lastModel,
       pinned: pinned ?? this.pinned,
     );
   }

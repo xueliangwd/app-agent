@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/models/ai_provider.dart';
 import '../../../core/models/chat_models.dart';
 
 class MockChatData {
@@ -10,7 +11,12 @@ class MockChatData {
         id: 'session_product',
         title: 'Agent App 方案',
         updatedAt: now,
-        lastResponseId: null,
+        lastModel: const AiModelOption(
+          platform: AiPlatform.openai,
+          id: 'gpt-5.2',
+          label: 'gpt-5.2',
+          isConfigured: false,
+        ),
         pinned: true,
         messages: [
           ChatMessage(
@@ -75,7 +81,12 @@ class MockChatData {
         id: 'session_data',
         title: '运营周报',
         updatedAt: now.subtract(const Duration(hours: 2)),
-        lastResponseId: null,
+        lastModel: const AiModelOption(
+          platform: AiPlatform.deepseek,
+          id: 'deepseek-chat',
+          label: 'deepseek-chat',
+          isConfigured: false,
+        ),
         messages: [
           ChatMessage(
             id: 'data_1',

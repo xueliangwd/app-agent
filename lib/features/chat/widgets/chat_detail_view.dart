@@ -48,7 +48,11 @@ class _ChatDetailViewState extends State<ChatDetailView> {
 
     final body = Column(
       children: [
-        _Header(session: session, embedded: widget.embedded),
+        _Header(
+          session: session,
+          embedded: widget.embedded,
+          controller: widget.controller,
+        ),
         Expanded(
           child: ListView.separated(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
@@ -85,13 +89,19 @@ class _ChatDetailViewState extends State<ChatDetailView> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.session, required this.embedded});
+  const _Header({
+    required this.session,
+    required this.embedded,
+    required this.controller,
+  });
 
   final ChatSession session;
   final bool embedded;
+  final ChatController controller;
 
   @override
   Widget build(BuildContext context) {
+    final selectedModel = controller.selectedModel;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
       child: Row(
@@ -110,15 +120,74 @@ class _Header extends StatelessWidget {
                   style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  '支持文本、富文本、Markdown、图表消息与后续 AI 接入',
-                  style: TextStyle(color: Color(0xFF64748B)),
+                Text(
+                  selectedModel == null
+                      ? '支持多平台模型接入'
+                      : '当前模型：${selectedModel.platformLabel} / ${selectedModel.id}',
+                  style: const TextStyle(color: Color(0xFF64748B)),
                 ),
               ],
             ),
           ),
+          const SizedBox(width: 12),
+          _ModelSwitcher(controller: controller),
         ],
       ),
+    );
+  }
+}
+
+class _ModelSwitcher extends StatelessWidget {
+  const _ModelSwitcher({required this.controller});
+
+  final ChatController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedModel = controller.selectedModel;
+    return OutlinedButton.icon(
+      onPressed: () async {
+        await showModalBottomSheet<void>(
+          context: context,
+          showDragHandle: true,
+          builder: (context) {
+            return SafeArea(
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(20, 8, 20, 12),
+                    child: Text(
+                      '切换模型',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  for (final option in controller.availableModels)
+                    ListTile(
+                      leading: Icon(
+                        option == selectedModel
+                            ? Icons.radio_button_checked
+                            : Icons.radio_button_off,
+                        color: const Color(0xFF0F766E),
+                      ),
+                      title: Text(option.displayName),
+                      subtitle: Text(option.isConfigured ? '已配置' : '未配置 API Key'),
+                      trailing: option.isConfigured
+                          ? null
+                          : const Icon(Icons.warning_amber_rounded, color: Color(0xFFE58C40)),
+                      onTap: () {
+                        controller.selectModel(option);
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+      icon: const Icon(Icons.tune),
+      label: Text(selectedModel?.label ?? '选择模型'),
     );
   }
 }

@@ -21,22 +21,44 @@
 - `google_fonts`
 - `intl`
 
-## OpenAI 接入
+## 多平台模型接入
 
-当前已接入 OpenAI 官方 `Responses API`。
+当前已接入三家平台，并支持在 App 内切换模型：
 
-启动时通过 `dart-define` 传入配置：
+- OpenAI
+- DeepSeek
+- 豆包 / 火山方舟
+
+启动时通过 `dart-define` 传入配置。
+
+### OpenAI
 
 ```bash
-fvm flutter run \
-  --dart-define=OPENAI_API_KEY=sk-xxx \
-  --dart-define=OPENAI_MODEL=gpt-5.2
+--dart-define=OPENAI_API_KEY=sk-xxx \
+--dart-define=OPENAI_MODELS=gpt-5.2,gpt-5-mini \
+--dart-define=OPENAI_BASE_URL=https://api.openai.com/v1
 ```
 
-如果你需要兼容代理或网关，也可以额外传：
+### DeepSeek
 
 ```bash
---dart-define=OPENAI_BASE_URL=https://api.openai.com/v1
+--dart-define=DEEPSEEK_API_KEY=sk-xxx \
+--dart-define=DEEPSEEK_MODELS=deepseek-chat,deepseek-reasoner \
+--dart-define=DEEPSEEK_BASE_URL=https://api.deepseek.com
+```
+
+### 豆包 / 火山方舟
+
+```bash
+--dart-define=DOUBAO_API_KEY=your_ark_key \
+--dart-define=DOUBAO_MODELS=doubao-seed-1-6-251015 \
+--dart-define=DOUBAO_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
+```
+
+也兼容：
+
+```bash
+--dart-define=ARK_API_KEY=your_ark_key
 ```
 
 ## 本地运行
@@ -45,7 +67,8 @@ fvm flutter run \
 fvm flutter pub get
 fvm flutter run \
   --dart-define=OPENAI_API_KEY=sk-xxx \
-  --dart-define=OPENAI_MODEL=gpt-5.2
+  --dart-define=DEEPSEEK_API_KEY=sk-xxx \
+  --dart-define=DOUBAO_API_KEY=your_ark_key
 ```
 
 如果只跑 iOS 模拟器：

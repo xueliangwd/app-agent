@@ -2,23 +2,28 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/models/ai_provider.dart';
 import '../../../core/models/chat_models.dart';
 import '../../../services/native_bridge_service.dart';
-import '../../../services/openai_service.dart';
+import '../../../services/llm_config.dart';
+import '../../../services/llm_service.dart';
 import 'mock_chat_data.dart';
 
 class ChatController extends ChangeNotifier {
-  ChatController({OpenAIService? openAIService})
-      : _openAIService = openAIService ?? OpenAIService();
+  ChatController({LlmService? llmService}) : _llmService = llmService ?? LlmService();
 
-  final OpenAIService _openAIService;
+  final LlmService _llmService;
   final List<ChatSession> _sessions = [];
   final Set<String> _typingSessionIds = {};
+  late final List<AiModelOption> _availableModels;
   String? _selectedSessionId;
+  AiModelOption? _selectedModel;
 
   List<ChatSession> get sessions => List.unmodifiable(_sessions);
+  List<AiModelOption> get availableModels => List.unmodifiable(_availableModels);
 
   String? get selectedSessionId => _selectedSessionId;
+  AiModelOption? get selectedModel => _selectedModel;
 
   ChatSession? get selectedSession {
     if (_selectedSessionId == null) {
@@ -34,6 +39,9 @@ class ChatController extends ChangeNotifier {
 
   Future<void> bootstrap() async {
     final context = await NativeBridgeService.instance.getPlatformContext();
+    _availableModels = LlmConfig.availableModels;
+    _selectedModel =
+        LlmConfig.configuredModels.firstOrNull ?? _availableModels.firstOrNull;
     _sessions
       ..clear()
       ..addAll(MockChatData.seedSessions(platformContext: context));
@@ -43,6 +51,11 @@ class ChatController extends ChangeNotifier {
 
   void selectSession(String sessionId) {
     _selectedSessionId = sessionId;
+    notifyListeners();
+  }
+
+  void selectModel(AiModelOption model) {
+    _selectedModel = model;
     notifyListeners();
   }
 
@@ -67,6 +80,7 @@ class ChatController extends ChangeNotifier {
         ),
       ],
       updatedAt: DateTime.now(),
+      lastModel: _selectedModel,
     );
     _sessions.insert(0, session);
     _selectedSessionId = session.id;
@@ -76,6 +90,10 @@ class ChatController extends ChangeNotifier {
   Future<void> sendUserMessage(String sessionId, String input) async {
     final trimmed = input.trim();
     if (trimmed.isEmpty) {
+      return;
+    }
+    final activeModel = _selectedModel;
+    if (activeModel == null) {
       return;
     }
 
@@ -100,20 +118,22 @@ class ChatController extends ChangeNotifier {
       title: current.title == '新对话' ? _buildTitle(trimmed) : current.title,
       messages: nextMessages,
       updatedAt: DateTime.now(),
+      lastModel: activeModel,
     );
     _typingSessionIds.add(sessionId);
     _sortSessions();
     notifyListeners();
 
     try {
-      final response = await _openAIService.createResponse(
-        input: trimmed,
-        previousResponseId: current.lastResponseId,
+      final updatedSession = _sessions.firstWhere((session) => session.id == sessionId);
+      final response = await _llmService.createChatCompletion(
+        model: activeModel,
+        messages: _buildRequestMessages(updatedSession),
       );
-      final updated = _sessions.firstWhere((session) => session.id == sessionId);
-      _sessions[_sessions.indexOf(updated)] = updated.copyWith(
+      final refreshed = _sessions.firstWhere((session) => session.id == sessionId);
+      _sessions[_sessions.indexOf(refreshed)] = refreshed.copyWith(
         messages: [
-          ...updated.messages,
+          ...refreshed.messages,
           ChatMessage(
             id: 'assistant_${DateTime.now().microsecondsSinceEpoch}',
             role: SenderRole.assistant,
@@ -122,7 +142,7 @@ class ChatController extends ChangeNotifier {
             text: response.outputText,
           ),
         ],
-        lastResponseId: response.id,
+        lastModel: activeModel,
         updatedAt: DateTime.now(),
       );
     } catch (error) {
@@ -145,8 +165,9 @@ $error
 请先检查：
 
 - `OPENAI_API_KEY` 是否已通过 `--dart-define` 传入
-- `OPENAI_BASE_URL` 是否正确
-- `OPENAI_MODEL` 是否可用
+- 当前平台对应的 API Key 是否已传入
+- Base URL 是否正确
+- 当前模型名是否可用
 ''',
           ),
         ],
@@ -166,6 +187,25 @@ $error
   }
   void _sortSessions() {
     _sessions.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+  }
+
+  List<Map<String, String>> _buildRequestMessages(ChatSession session) {
+    return [
+      const {
+        'role': 'system',
+        'content':
+            '你是一个中文优先的 AI Agent 助手。请尽量使用清晰结构化的 Markdown 回复；如果用户要求图表或富文本，先用文本和 Markdown 给出适合 UI 渲染的内容。',
+      },
+      for (final message in session.messages)
+        {
+          'role': switch (message.role) {
+            SenderRole.user => 'user',
+            SenderRole.assistant => 'assistant',
+            SenderRole.system => 'system',
+          },
+          'content': message.plainPreview,
+        },
+    ];
   }
 }
 
