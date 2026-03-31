@@ -56,18 +56,16 @@ class _ChatDetailViewState extends State<ChatDetailView> {
         Expanded(
           child: ListView.separated(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-            itemCount: session.messages.length + (widget.controller.isTyping(session.id) ? 1 : 0),
+            itemCount: session.messages.length,
             separatorBuilder: (_, _) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
-              if (index == session.messages.length) {
-                return const _TypingBubble();
-              }
               return MessageBubble(message: session.messages[index]);
             },
           ),
         ),
         _Composer(
           controller: _inputController,
+          isBusy: widget.controller.isTyping(session.id),
           onSend: () async {
             final text = _inputController.text;
             _inputController.clear();
@@ -193,10 +191,15 @@ class _ModelSwitcher extends StatelessWidget {
 }
 
 class _Composer extends StatelessWidget {
-  const _Composer({required this.controller, required this.onSend});
+  const _Composer({
+    required this.controller,
+    required this.onSend,
+    required this.isBusy,
+  });
 
   final TextEditingController controller;
   final Future<void> Function() onSend;
+  final bool isBusy;
 
   @override
   Widget build(BuildContext context) {
@@ -223,6 +226,7 @@ class _Composer extends StatelessWidget {
               Expanded(
                 child: TextField(
                   controller: controller,
+                  enabled: !isBusy,
                   minLines: 1,
                   maxLines: 6,
                   decoration: const InputDecoration(
@@ -236,35 +240,22 @@ class _Composer extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               FilledButton(
-                onPressed: onSend,
+                onPressed: isBusy ? null : onSend,
                 style: FilledButton.styleFrom(
                   backgroundColor: const Color(0xFF0F766E),
                   foregroundColor: Colors.white,
                 ),
-                child: const Icon(Icons.arrow_upward),
+                child: isBusy
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.arrow_upward),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _TypingBubble extends StatelessWidget {
-  const _TypingBubble();
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: const Text('正在生成中...'),
       ),
     );
   }

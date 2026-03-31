@@ -47,16 +47,45 @@ class MockChatData {
           ChatMessage(
             id: 'msg_3',
             role: SenderRole.assistant,
-            type: MessageType.richText,
+            type: MessageType.blocks,
             createdAt: now.subtract(const Duration(minutes: 6)),
-            richSegments: const [
-              RichSegment(text: '已经支持 '),
-              RichSegment(text: 'Markdown', bold: true, color: Color(0xFF0F766E)),
-              RichSegment(text: '、'),
-              RichSegment(text: 'Rich Text', bold: true, color: Color(0xFFE58C40)),
-              RichSegment(text: '、'),
-              RichSegment(text: 'Charts', bold: true, color: Color(0xFF264653)),
-              RichSegment(text: ' 三类消息卡片。'),
+            blocks: const [
+              ContentBlock(
+                type: ContentBlockType.markdown,
+                text: '下面这条消息演示了会话内多种格式混排能力，目标是覆盖豆包类产品常见内容载体。',
+              ),
+              ContentBlock(
+                type: ContentBlockType.richText,
+                richSegments: [
+                  RichSegment(text: '已支持 '),
+                  RichSegment(text: 'Markdown', bold: true, color: Color(0xFF0F766E)),
+                  RichSegment(text: '、'),
+                  RichSegment(text: '富文本', bold: true, color: Color(0xFFE58C40)),
+                  RichSegment(text: '、'),
+                  RichSegment(text: '图片/文件/网页卡片', bold: true, color: Color(0xFF264653)),
+                  RichSegment(text: '、代码、公式、Mermaid、媒体与任务结果。'),
+                ],
+              ),
+              ContentBlock(
+                type: ContentBlockType.code,
+                code: CodePayload(
+                  language: 'dart',
+                  title: 'Flutter Block Renderer',
+                  source: 'Widget buildBlock(ContentBlock block) {\n  return switch (block.type) {\n    ContentBlockType.markdown => MarkdownBody(data: block.text ?? \'\'),\n    ContentBlockType.image => Image.network(block.images.first.url),\n    _ => const SizedBox.shrink(),\n  };\n}',
+                ),
+              ),
+              ContentBlock(
+                type: ContentBlockType.latex,
+                text: r'E = mc^2, \int_0^1 x^2 dx = \frac{1}{3}',
+              ),
+              ContentBlock(
+                type: ContentBlockType.mermaid,
+                text: 'graph TD\n  用户输入 --> 模型路由\n  模型路由 --> 渲染协议\n  渲染协议 --> Flutter UI',
+              ),
+              ContentBlock(
+                type: ContentBlockType.quote,
+                text: '引用块通常用于总结、结论、法规摘要、研究摘录或来源片段。',
+              ),
             ],
           ),
           ChatMessage(
@@ -74,6 +103,73 @@ class MockChatData {
                 ChartDatum(label: 'Chart', value: 92, color: Color(0xFFE76F51)),
               ],
             ),
+          ),
+          ChatMessage(
+            id: 'msg_5',
+            role: SenderRole.assistant,
+            type: MessageType.blocks,
+            createdAt: now.subtract(const Duration(minutes: 4)),
+            blocks: const [
+              ContentBlock(
+                type: ContentBlockType.gallery,
+                images: [
+                  MediaItem(
+                    url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=900&q=80',
+                    title: '产品看板',
+                    caption: '图库示例：适合生成结果、多图对比、海报合集',
+                  ),
+                  MediaItem(
+                    url: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=900&q=80',
+                    title: '数据大屏',
+                  ),
+                ],
+              ),
+              ContentBlock(
+                type: ContentBlockType.file,
+                file: FileAttachment(
+                  name: '2026_Q1_Agent_PRD.pdf',
+                  extension: 'pdf',
+                  sizeLabel: '2.4 MB',
+                  summary: '产品需求文档摘要已生成',
+                ),
+              ),
+              ContentBlock(
+                type: ContentBlockType.webCard,
+                webCard: WebCardPayload(
+                  title: 'Agent App 行业研究',
+                  domain: 'research.example.com',
+                  summary: '网页卡片适合展示搜索结果、引用来源、链接摘要与结构化检索信息。',
+                ),
+              ),
+              ContentBlock(
+                type: ContentBlockType.audio,
+                media: MediaPayload(
+                  title: '会议录音转写',
+                  durationLabel: '12:32',
+                  summary: '音频卡片可用于转写、播报、语音消息。',
+                ),
+              ),
+              ContentBlock(
+                type: ContentBlockType.video,
+                media: MediaPayload(
+                  title: '交互演示视频',
+                  durationLabel: '00:45',
+                  summary: '视频卡片可用于短片预览、讲解结果、生成素材。',
+                ),
+              ),
+              ContentBlock(
+                type: ContentBlockType.taskResult,
+                taskResult: TaskResultPayload(
+                  title: 'Agent 执行结果',
+                  status: '已完成',
+                  items: [
+                    '已读取 3 份产品文档',
+                    '已生成一版信息架构',
+                    '已整理 5 条关键风险',
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),

@@ -92,6 +92,9 @@ class ChatController extends ChangeNotifier {
     if (trimmed.isEmpty) {
       return;
     }
+    if (_typingSessionIds.contains(sessionId)) {
+      return;
+    }
     final activeModel = _selectedModel;
     if (activeModel == null) {
       return;
@@ -120,43 +123,71 @@ class ChatController extends ChangeNotifier {
       updatedAt: DateTime.now(),
       lastModel: activeModel,
     );
-    _typingSessionIds.add(sessionId);
-    _sortSessions();
-    notifyListeners();
-
     try {
-      final updatedSession = _sessions.firstWhere((session) => session.id == sessionId);
-      final response = await _llmService.createChatCompletion(
-        model: activeModel,
-        messages: _buildRequestMessages(updatedSession),
-      );
-      final refreshed = _sessions.firstWhere((session) => session.id == sessionId);
-      _sessions[_sessions.indexOf(refreshed)] = refreshed.copyWith(
+      final assistantMessageId = 'assistant_${DateTime.now().microsecondsSinceEpoch}';
+      final sessionWithPlaceholder = _sessions[sessionIndex].copyWith(
         messages: [
-          ...refreshed.messages,
+          ..._sessions[sessionIndex].messages,
           ChatMessage(
-            id: 'assistant_${DateTime.now().microsecondsSinceEpoch}',
+            id: assistantMessageId,
             role: SenderRole.assistant,
             type: MessageType.markdown,
             createdAt: DateTime.now(),
-            text: response.outputText,
+            text: '',
           ),
         ],
-        lastModel: activeModel,
         updatedAt: DateTime.now(),
       );
+      _sessions[sessionIndex] = sessionWithPlaceholder;
+      _typingSessionIds.add(sessionId);
+      _sortSessions();
+      notifyListeners();
+
+      final buffer = StringBuffer();
+      await for (final chunk in _llmService.streamChatCompletion(
+        model: activeModel,
+        messages: _buildRequestMessages(current.copyWith(messages: nextMessages)),
+      )) {
+        buffer.write(chunk);
+        _updateAssistantDraft(
+          sessionId: sessionId,
+          messageId: assistantMessageId,
+          nextText: buffer.toString(),
+          activeModel: activeModel,
+        );
+      }
+
+      if (buffer.isEmpty) {
+        throw const LlmRequestException('流式连接已建立，但没有收到文本内容。', 200);
+      }
     } catch (error) {
-      final updated = _sessions.firstWhere((session) => session.id == sessionId);
-      _sessions[_sessions.indexOf(updated)] = updated.copyWith(
-        messages: [
-          ...updated.messages,
-          ChatMessage(
-            id: 'assistant_error_${DateTime.now().microsecondsSinceEpoch}',
-            role: SenderRole.assistant,
-            type: MessageType.markdown,
-            createdAt: DateTime.now(),
-            text: '''
-OpenAI 调用失败：
+      _upsertErrorMessage(sessionId, error);
+    } finally {
+      _typingSessionIds.remove(sessionId);
+      _sortSessions();
+      notifyListeners();
+    }
+  }
+
+  void _upsertErrorMessage(String sessionId, Object error) {
+    final sessionIndex = _sessions.indexWhere((session) => session.id == sessionId);
+    if (sessionIndex == -1) {
+      return;
+    }
+
+    final session = _sessions[sessionIndex];
+    final messages = [...session.messages];
+    final assistantIndex = messages.lastIndexWhere(
+      (message) => message.role == SenderRole.assistant && (message.text ?? '').isEmpty,
+    );
+
+    final errorMessage = ChatMessage(
+      id: 'assistant_error_${DateTime.now().microsecondsSinceEpoch}',
+      role: SenderRole.assistant,
+      type: MessageType.markdown,
+      createdAt: DateTime.now(),
+      text: '''
+模型调用失败：
 
 ```text
 $error
@@ -169,14 +200,18 @@ $error
 - Base URL 是否正确
 - 当前模型名是否可用
 ''',
-          ),
-        ],
-        updatedAt: DateTime.now(),
-      );
+    );
+
+    if (assistantIndex != -1) {
+      messages[assistantIndex] = errorMessage;
+    } else {
+      messages.add(errorMessage);
     }
-    _typingSessionIds.remove(sessionId);
-    _sortSessions();
-    notifyListeners();
+
+    _sessions[sessionIndex] = session.copyWith(
+      messages: messages,
+      updatedAt: DateTime.now(),
+    );
   }
 
   String _buildTitle(String input) {
@@ -187,6 +222,43 @@ $error
   }
   void _sortSessions() {
     _sessions.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+  }
+
+  void _updateAssistantDraft({
+    required String sessionId,
+    required String messageId,
+    required String nextText,
+    required AiModelOption activeModel,
+  }) {
+    final sessionIndex = _sessions.indexWhere((session) => session.id == sessionId);
+    if (sessionIndex == -1) {
+      return;
+    }
+
+    final session = _sessions[sessionIndex];
+    final messages = [...session.messages];
+    final messageIndex = messages.indexWhere((message) => message.id == messageId);
+    if (messageIndex == -1) {
+      return;
+    }
+
+    final previous = messages[messageIndex];
+    messages[messageIndex] = ChatMessage(
+      id: previous.id,
+      role: previous.role,
+      type: previous.type,
+      createdAt: previous.createdAt,
+      text: nextText,
+      richSegments: previous.richSegments,
+      chart: previous.chart,
+    );
+
+    _sessions[sessionIndex] = session.copyWith(
+      messages: messages,
+      updatedAt: DateTime.now(),
+      lastModel: activeModel,
+    );
+    notifyListeners();
   }
 
   List<Map<String, String>> _buildRequestMessages(ChatSession session) {

@@ -43,7 +43,7 @@ class MessageBubble extends StatelessWidget {
         ],
         Flexible(
           child: Container(
-            constraints: const BoxConstraints(maxWidth: 680),
+            constraints: const BoxConstraints(maxWidth: 720),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: bubbleColor,
@@ -51,7 +51,7 @@ class MessageBubble extends StatelessWidget {
             ),
             child: DefaultTextStyle(
               style: TextStyle(color: textColor, height: 1.55, fontSize: 15),
-              child: _MessageContent(message: message, textColor: textColor),
+              child: _MessageContent(message: message, textColor: textColor, isUser: _isUser),
             ),
           ),
         ),
@@ -61,10 +61,15 @@ class MessageBubble extends StatelessWidget {
 }
 
 class _MessageContent extends StatelessWidget {
-  const _MessageContent({required this.message, required this.textColor});
+  const _MessageContent({
+    required this.message,
+    required this.textColor,
+    required this.isUser,
+  });
 
   final ChatMessage message;
   final Color textColor;
+  final bool isUser;
 
   @override
   Widget build(BuildContext context) {
@@ -72,53 +77,567 @@ class _MessageContent extends StatelessWidget {
       case MessageType.text:
         return Text(message.text ?? '');
       case MessageType.markdown:
-        return MarkdownBody(
-          data: message.text ?? '',
-          selectable: true,
-          extensionSet: mdExtensionSet,
-          styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-            p: TextStyle(color: textColor, fontSize: 15, height: 1.55),
-            strong: TextStyle(color: textColor, fontWeight: FontWeight.w800),
-            em: TextStyle(color: textColor, fontStyle: FontStyle.italic),
-            code: TextStyle(
-              color: textColor,
-              backgroundColor: textColor.withValues(alpha: 0.08),
-            ),
-            blockquote: TextStyle(color: textColor.withValues(alpha: 0.82)),
-            h1: TextStyle(color: textColor, fontSize: 24, fontWeight: FontWeight.w800),
-            h2: TextStyle(color: textColor, fontSize: 20, fontWeight: FontWeight.w800),
-            h3: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.w700),
-            listBullet: TextStyle(color: textColor),
-            tableBody: TextStyle(color: textColor),
-            tableHead: TextStyle(color: textColor, fontWeight: FontWeight.w700),
-          ),
-        );
+        return _MarkdownText(data: message.text ?? '', textColor: textColor);
       case MessageType.richText:
-        return Text.rich(
-          TextSpan(
-            children: message.richSegments
-                .map(
-                  (segment) => TextSpan(
-                    text: segment.text,
-                    style: TextStyle(
-                      color: segment.color ?? textColor,
-                      fontWeight: segment.bold ? FontWeight.w800 : FontWeight.w400,
-                      fontStyle: segment.italic ? FontStyle.italic : FontStyle.normal,
-                    ),
-                  ),
-                )
-                .toList(),
-          ),
-        );
+        return _RichTextBlock(segments: message.richSegments, textColor: textColor);
       case MessageType.lineChart:
       case MessageType.barChart:
       case MessageType.pieChart:
         return _ChartCard(message: message);
+      case MessageType.blocks:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (var i = 0; i < message.blocks.length; i++) ...[
+              _ContentBlockView(
+                block: message.blocks[i],
+                textColor: textColor,
+                isUser: isUser,
+              ),
+              if (i != message.blocks.length - 1) const SizedBox(height: 14),
+            ],
+          ],
+        );
     }
   }
 }
 
-final mdExtensionSet = md.ExtensionSet.gitHubWeb;
+class _ContentBlockView extends StatelessWidget {
+  const _ContentBlockView({
+    required this.block,
+    required this.textColor,
+    required this.isUser,
+  });
+
+  final ContentBlock block;
+  final Color textColor;
+  final bool isUser;
+
+  @override
+  Widget build(BuildContext context) {
+    switch (block.type) {
+      case ContentBlockType.text:
+        return Text(block.text ?? '');
+      case ContentBlockType.markdown:
+        return _MarkdownText(data: block.text ?? '', textColor: textColor);
+      case ContentBlockType.richText:
+        return _RichTextBlock(segments: block.richSegments, textColor: textColor);
+      case ContentBlockType.code:
+        return _CodeCard(code: block.code!, isUser: isUser);
+      case ContentBlockType.quote:
+        return _QuoteCard(text: block.text ?? '');
+      case ContentBlockType.latex:
+        return _LabelCard(
+          icon: Icons.functions,
+          title: 'LaTeX / 数学公式',
+          subtitle: block.text ?? '',
+        );
+      case ContentBlockType.mermaid:
+        return _LabelCard(
+          icon: Icons.account_tree_outlined,
+          title: 'Mermaid 图示',
+          subtitle: block.text ?? '',
+        );
+      case ContentBlockType.image:
+        return _ImageCard(item: block.images.first);
+      case ContentBlockType.gallery:
+        return _GalleryCard(images: block.images);
+      case ContentBlockType.file:
+        return _FileCard(block.file!);
+      case ContentBlockType.webCard:
+        return _WebCard(block.webCard!);
+      case ContentBlockType.audio:
+        return _MediaCard(
+          icon: Icons.graphic_eq_rounded,
+          title: block.media!.title,
+          meta: block.media!.durationLabel,
+          summary: block.media!.summary,
+        );
+      case ContentBlockType.video:
+        return _MediaCard(
+          icon: Icons.smart_display_outlined,
+          title: block.media!.title,
+          meta: block.media!.durationLabel,
+          summary: block.media!.summary,
+        );
+      case ContentBlockType.taskResult:
+        return _TaskResultCard(block.taskResult!);
+      case ContentBlockType.lineChart:
+      case ContentBlockType.barChart:
+      case ContentBlockType.pieChart:
+        return _BlockChartCard(block: block);
+    }
+  }
+}
+
+class _MarkdownText extends StatelessWidget {
+  const _MarkdownText({required this.data, required this.textColor});
+
+  final String data;
+  final Color textColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return MarkdownBody(
+      data: data,
+      selectable: true,
+      extensionSet: md.ExtensionSet.gitHubWeb,
+      styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+        p: TextStyle(color: textColor, fontSize: 15, height: 1.55),
+        strong: TextStyle(color: textColor, fontWeight: FontWeight.w800),
+        em: TextStyle(color: textColor, fontStyle: FontStyle.italic),
+        code: TextStyle(
+          color: textColor,
+          backgroundColor: textColor.withValues(alpha: 0.08),
+        ),
+        blockquote: TextStyle(color: textColor.withValues(alpha: 0.82)),
+        h1: TextStyle(color: textColor, fontSize: 24, fontWeight: FontWeight.w800),
+        h2: TextStyle(color: textColor, fontSize: 20, fontWeight: FontWeight.w800),
+        h3: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.w700),
+        listBullet: TextStyle(color: textColor),
+        tableBody: TextStyle(color: textColor),
+        tableHead: TextStyle(color: textColor, fontWeight: FontWeight.w700),
+      ),
+    );
+  }
+}
+
+class _RichTextBlock extends StatelessWidget {
+  const _RichTextBlock({required this.segments, required this.textColor});
+
+  final List<RichSegment> segments;
+  final Color textColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text.rich(
+      TextSpan(
+        children: segments
+            .map(
+              (segment) => TextSpan(
+                text: segment.text,
+                style: TextStyle(
+                  color: segment.color ?? textColor,
+                  fontWeight: segment.bold ? FontWeight.w800 : FontWeight.w400,
+                  fontStyle: segment.italic ? FontStyle.italic : FontStyle.normal,
+                ),
+              ),
+            )
+            .toList(),
+      ),
+    );
+  }
+}
+
+class _QuoteCard extends StatelessWidget {
+  const _QuoteCard({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: const Border(
+          left: BorderSide(color: Color(0xFF0F766E), width: 4),
+        ),
+      ),
+      child: Text(text, style: const TextStyle(color: Color(0xFF334155))),
+    );
+  }
+}
+
+class _CodeCard extends StatelessWidget {
+  const _CodeCard({required this.code, required this.isUser});
+
+  final CodePayload code;
+  final bool isUser;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isUser ? const Color(0xFF0B3F39) : const Color(0xFF0F172A),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                code.title ?? '代码块',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  code.language,
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          SelectableText(
+            code.source,
+            style: const TextStyle(
+              color: Color(0xFFE2E8F0),
+              fontFamily: 'monospace',
+              height: 1.45,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ImageCard extends StatelessWidget {
+  const _ImageCard({required this.item});
+
+  final MediaItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AspectRatio(
+            aspectRatio: item.aspectRatio,
+            child: Image.network(
+              item.url,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => _FallbackVisual(title: item.title),
+            ),
+          ),
+          if (item.caption != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(item.caption!, style: const TextStyle(color: Color(0xFF64748B))),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GalleryCard extends StatelessWidget {
+  const _GalleryCard({required this.images});
+
+  final List<MediaItem> images;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 140,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: images.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
+        itemBuilder: (context, index) {
+          final item = images[index];
+          return SizedBox(
+            width: 180,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(18),
+              child: Image.network(
+                item.url,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => _FallbackVisual(title: item.title),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _FallbackVisual extends StatelessWidget {
+  const _FallbackVisual({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFFCBD5E1), Color(0xFFE2E8F0)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FileCard extends StatelessWidget {
+  const _FileCard(this.file);
+
+  final FileAttachment file;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F766E).withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              file.extension.toUpperCase(),
+              style: const TextStyle(
+                color: Color(0xFF0F766E),
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(file.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                Text(
+                  '${file.sizeLabel}${file.summary == null ? '' : ' · ${file.summary}'}',
+                  style: const TextStyle(color: Color(0xFF64748B)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WebCard extends StatelessWidget {
+  const _WebCard(this.card);
+
+  final WebCardPayload card;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(card.domain, style: const TextStyle(color: Color(0xFF0F766E), fontSize: 12)),
+          const SizedBox(height: 4),
+          Text(card.title, style: const TextStyle(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 6),
+          Text(card.summary, style: const TextStyle(color: Color(0xFF475569), height: 1.45)),
+        ],
+      ),
+    );
+  }
+}
+
+class _MediaCard extends StatelessWidget {
+  const _MediaCard({
+    required this.icon,
+    required this.title,
+    required this.meta,
+    this.summary,
+  });
+
+  final IconData icon;
+  final String title;
+  final String meta;
+  final String? summary;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F766E).withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: const Color(0xFF0F766E)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                Text(meta, style: const TextStyle(color: Color(0xFF64748B))),
+                if (summary != null) ...[
+                  const SizedBox(height: 4),
+                  Text(summary!, style: const TextStyle(color: Color(0xFF475569))),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TaskResultCard extends StatelessWidget {
+  const _TaskResultCard(this.payload);
+
+  final TaskResultPayload payload;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(payload.title, style: const TextStyle(fontWeight: FontWeight.w800)),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDCFCE7),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  payload.status,
+                  style: const TextStyle(
+                    color: Color(0xFF166534),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          for (final item in payload.items) ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(top: 7, right: 8),
+                  child: Icon(Icons.circle, size: 6, color: Color(0xFF0F766E)),
+                ),
+                Expanded(child: Text(item)),
+              ],
+            ),
+            const SizedBox(height: 6),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _LabelCard extends StatelessWidget {
+  const _LabelCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: const Color(0xFF0F766E)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+                const SizedBox(height: 6),
+                SelectableText(subtitle, style: const TextStyle(color: Color(0xFF475569))),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BlockChartCard extends StatelessWidget {
+  const _BlockChartCard({required this.block});
+
+  final ContentBlock block;
+
+  @override
+  Widget build(BuildContext context) {
+    return _ChartBody(type: block.type, chart: block.chart!);
+  }
+}
 
 class _ChartCard extends StatelessWidget {
   const _ChartCard({required this.message});
@@ -127,7 +646,34 @@ class _ChartCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final chart = message.chart!;
+    return _ChartBody(type: _mapMessageType(message.type), chart: message.chart!);
+  }
+}
+
+ContentBlockType _mapMessageType(MessageType type) {
+  switch (type) {
+    case MessageType.lineChart:
+      return ContentBlockType.lineChart;
+    case MessageType.barChart:
+      return ContentBlockType.barChart;
+    case MessageType.pieChart:
+      return ContentBlockType.pieChart;
+    case MessageType.text:
+    case MessageType.markdown:
+    case MessageType.richText:
+    case MessageType.blocks:
+      return ContentBlockType.text;
+  }
+}
+
+class _ChartBody extends StatelessWidget {
+  const _ChartBody({required this.type, required this.chart});
+
+  final ContentBlockType type;
+  final ChartPayload chart;
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -143,10 +689,10 @@ class _ChartCard extends StatelessWidget {
         const SizedBox(height: 16),
         SizedBox(
           height: 220,
-          child: switch (message.type) {
-            MessageType.lineChart => _LineChartView(chart: chart),
-            MessageType.barChart => _BarChartView(chart: chart),
-            MessageType.pieChart => _PieChartView(chart: chart),
+          child: switch (type) {
+            ContentBlockType.lineChart => _LineChartView(chart: chart),
+            ContentBlockType.barChart => _BarChartView(chart: chart),
+            ContentBlockType.pieChart => _PieChartView(chart: chart),
             _ => const SizedBox.shrink(),
           },
         ),
