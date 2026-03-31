@@ -88,8 +88,16 @@ class ChatController extends ChangeNotifier {
   }
 
   Future<void> sendUserMessage(String sessionId, String input) async {
+    await sendComposedMessage(sessionId: sessionId, input: input);
+  }
+
+  Future<void> sendComposedMessage({
+    required String sessionId,
+    required String input,
+    List<DraftAttachment> attachments = const [],
+  }) async {
     final trimmed = input.trim();
-    if (trimmed.isEmpty) {
+    if (trimmed.isEmpty && attachments.isEmpty) {
       return;
     }
     if (_typingSessionIds.contains(sessionId)) {
@@ -107,15 +115,7 @@ class ChatController extends ChangeNotifier {
 
     final current = _sessions[sessionIndex];
     final nextMessages = [...current.messages];
-    nextMessages.add(
-      ChatMessage(
-        id: 'user_${DateTime.now().microsecondsSinceEpoch}',
-        role: SenderRole.user,
-        type: MessageType.text,
-        createdAt: DateTime.now(),
-        text: trimmed,
-      ),
-    );
+    nextMessages.add(_buildUserMessage(trimmed, attachments));
 
     _sessions[sessionIndex] = current.copyWith(
       title: current.title == '新对话' ? _buildTitle(trimmed) : current.title,
@@ -215,6 +215,9 @@ $error
   }
 
   String _buildTitle(String input) {
+    if (input.isEmpty) {
+      return '附件对话';
+    }
     if (input.runes.length <= 16) {
       return input;
     }
@@ -278,6 +281,23 @@ $error
           'content': message.plainPreview,
         },
     ];
+  }
+
+  ChatMessage _buildUserMessage(String input, List<DraftAttachment> attachments) {
+    final blocks = <ContentBlock>[
+      if (input.isNotEmpty) ContentBlock(type: ContentBlockType.text, text: input),
+      ...attachments.map((attachment) => attachment.toContentBlock()),
+    ];
+    final hasAttachments = attachments.isNotEmpty;
+
+    return ChatMessage(
+      id: 'user_${DateTime.now().microsecondsSinceEpoch}',
+      role: SenderRole.user,
+      type: hasAttachments ? MessageType.blocks : MessageType.text,
+      createdAt: DateTime.now(),
+      text: hasAttachments ? null : input,
+      blocks: hasAttachments ? blocks : const [],
+    );
   }
 }
 

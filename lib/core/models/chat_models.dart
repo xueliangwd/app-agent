@@ -26,6 +26,8 @@ enum ContentBlockType {
   pieChart,
 }
 
+enum DraftAttachmentType { image, file }
+
 class ChatSession {
   ChatSession({
     required this.id,
@@ -204,12 +206,14 @@ class MediaItem {
     required this.title,
     this.aspectRatio = 16 / 9,
     this.caption,
+    this.localPath,
   });
 
   final String url;
   final String title;
   final double aspectRatio;
   final String? caption;
+  final String? localPath;
 }
 
 class FileAttachment {
@@ -218,12 +222,14 @@ class FileAttachment {
     required this.extension,
     required this.sizeLabel,
     this.summary,
+    this.localPath,
   });
 
   final String name;
   final String extension;
   final String sizeLabel;
   final String? summary;
+  final String? localPath;
 }
 
 class WebCardPayload {
@@ -274,4 +280,50 @@ class TaskResultPayload {
   final String title;
   final String status;
   final List<String> items;
+}
+
+class DraftAttachment {
+  const DraftAttachment({
+    required this.id,
+    required this.type,
+    required this.path,
+    required this.name,
+    required this.sizeLabel,
+    this.extension,
+  });
+
+  final String id;
+  final DraftAttachmentType type;
+  final String path;
+  final String name;
+  final String sizeLabel;
+  final String? extension;
+
+  ContentBlock toContentBlock() {
+    switch (type) {
+      case DraftAttachmentType.image:
+        return ContentBlock(
+          type: ContentBlockType.image,
+          images: [
+            MediaItem(
+              url: path,
+              localPath: path,
+              title: name,
+              caption: sizeLabel,
+            ),
+          ],
+        );
+      case DraftAttachmentType.file:
+        return ContentBlock(
+          type: ContentBlockType.file,
+          file: FileAttachment(
+            name: name,
+            extension: (extension ?? 'file').replaceFirst('.', ''),
+            sizeLabel: sizeLabel,
+            summary: '本地附件',
+            localPath: path,
+          ),
+        );
+    }
+  }
 }

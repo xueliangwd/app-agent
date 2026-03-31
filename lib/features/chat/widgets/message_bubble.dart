@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
@@ -313,25 +315,68 @@ class _ImageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AspectRatio(
-            aspectRatio: item.aspectRatio,
-            child: Image.network(
-              item.url,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => _FallbackVisual(title: item.title),
+    return GestureDetector(
+      onTap: () => _showPreview(context),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AspectRatio(
+              aspectRatio: item.aspectRatio,
+              child: _buildImage(),
             ),
-          ),
-          if (item.caption != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(item.caption!, style: const TextStyle(color: Color(0xFF64748B))),
+            if (item.caption != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(item.caption!, style: const TextStyle(color: Color(0xFF64748B))),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImage() {
+    if (item.localPath != null && item.localPath!.isNotEmpty) {
+      return Image.file(
+        File(item.localPath!),
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _FallbackVisual(title: item.title),
+      );
+    }
+    return Image.network(
+      item.url,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) => _FallbackVisual(title: item.title),
+    );
+  }
+
+  void _showPreview(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => Dialog(
+        insetPadding: const EdgeInsets.all(18),
+        backgroundColor: Colors.black,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: InteractiveViewer(
+                minScale: 0.8,
+                maxScale: 4,
+                child: Center(child: _buildImage()),
+              ),
             ),
-        ],
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.close, color: Colors.white),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -352,14 +397,26 @@ class _GalleryCard extends StatelessWidget {
         separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemBuilder: (context, index) {
           final item = images[index];
-          return SizedBox(
-            width: 180,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: Image.network(
-                item.url,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => _FallbackVisual(title: item.title),
+          final imageWidget = item.localPath != null && item.localPath!.isNotEmpty
+              ? Image.file(
+                  File(item.localPath!),
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      _FallbackVisual(title: item.title),
+                )
+              : Image.network(
+                  item.url,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      _FallbackVisual(title: item.title),
+                );
+          return GestureDetector(
+            onTap: () => _ImageCard(item: item)._showPreview(context),
+            child: SizedBox(
+              width: 180,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: imageWidget,
               ),
             ),
           );

@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/models/chat_models.dart';
@@ -22,6 +23,7 @@ class ChatDetailView extends StatefulWidget {
 
 class _ChatDetailViewState extends State<ChatDetailView> {
   late final TextEditingController _inputController;
+  final List<DraftAttachment> _draftAttachments = [];
 
   @override
   void initState() {
@@ -33,6 +35,54 @@ class _ChatDetailViewState extends State<ChatDetailView> {
   void dispose() {
     _inputController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImages() async {
+    final result = await FilePicker.platform.pickFiles(
+      allowMultiple: true,
+      type: FileType.image,
+    );
+    if (!mounted || result == null) {
+      return;
+    }
+    setState(() {
+      _draftAttachments.addAll(_toDraftAttachments(result, imageOnly: true));
+    });
+  }
+
+  Future<void> _pickFiles() async {
+    final result = await FilePicker.platform.pickFiles(allowMultiple: true);
+    if (!mounted || result == null) {
+      return;
+    }
+    setState(() {
+      _draftAttachments.addAll(_toDraftAttachments(result));
+    });
+  }
+
+  List<DraftAttachment> _toDraftAttachments(
+    FilePickerResult result, {
+    bool imageOnly = false,
+  }) {
+    return result.files.where((file) => file.path != null).map((file) {
+      final type = imageOnly || _isImageExtension(file.extension)
+          ? DraftAttachmentType.image
+          : DraftAttachmentType.file;
+      return DraftAttachment(
+        id: 'draft_${DateTime.now().microsecondsSinceEpoch}_${file.name}',
+        type: type,
+        path: file.path!,
+        name: file.name,
+        sizeLabel: _formatBytes(file.size),
+        extension: file.extension,
+      );
+    }).toList(growable: false);
+  }
+
+  void _removeDraft(String id) {
+    setState(() {
+      _draftAttachments.removeWhere((item) => item.id == id);
+    });
   }
 
   @override
@@ -66,10 +116,22 @@ class _ChatDetailViewState extends State<ChatDetailView> {
         _Composer(
           controller: _inputController,
           isBusy: widget.controller.isTyping(session.id),
+          attachments: _draftAttachments,
+          onPickImages: _pickImages,
+          onPickFiles: _pickFiles,
+          onRemoveAttachment: _removeDraft,
           onSend: () async {
             final text = _inputController.text;
+            final attachments = List<DraftAttachment>.from(_draftAttachments);
             _inputController.clear();
-            await widget.controller.sendUserMessage(session.id, text);
+            setState(() {
+              _draftAttachments.clear();
+            });
+            await widget.controller.sendComposedMessage(
+              sessionId: session.id,
+              input: text,
+              attachments: attachments,
+            );
           },
         ),
       ],
@@ -195,11 +257,19 @@ class _Composer extends StatelessWidget {
     required this.controller,
     required this.onSend,
     required this.isBusy,
+    required this.attachments,
+    required this.onPickImages,
+    required this.onPickFiles,
+    required this.onRemoveAttachment,
   });
 
   final TextEditingController controller;
   final Future<void> Function() onSend;
   final bool isBusy;
+  final List<DraftAttachment> attachments;
+  final Future<void> Function() onPickImages;
+  final Future<void> Function() onPickFiles;
+  final ValueChanged<String> onRemoveAttachment;
 
   @override
   Widget build(BuildContext context) {
@@ -218,40 +288,72 @@ class _Composer extends StatelessWidget {
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 10, 10, 10),
-          child: Row(
+          padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.auto_awesome, color: Color(0xFF0F766E)),
-              const SizedBox(width: 10),
-              Expanded(
-                child: TextField(
-                  controller: controller,
-                  enabled: !isBusy,
-                  minLines: 1,
-                  maxLines: 6,
-                  decoration: const InputDecoration(
-                    hintText: '输入你的问题，例如：帮我用图表总结这周活跃度',
-                    filled: false,
-                    contentPadding: EdgeInsets.zero,
-                    border: InputBorder.none,
+              if (attachments.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: SizedBox(
+                    height: 52,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: attachments.length,
+                      separatorBuilder: (_, _) => const SizedBox(width: 8),
+                      itemBuilder: (context, index) {
+                        final item = attachments[index];
+                        return _AttachmentChip(
+                          attachment: item,
+                          onRemove: () => onRemoveAttachment(item.id),
+                        );
+                      },
+                    ),
                   ),
-                  onSubmitted: (_) => onSend(),
                 ),
-              ),
-              const SizedBox(width: 10),
-              FilledButton(
-                onPressed: isBusy ? null : onSend,
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF0F766E),
-                  foregroundColor: Colors.white,
-                ),
-                child: isBusy
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.arrow_upward),
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: isBusy ? null : onPickImages,
+                    icon: const Icon(Icons.image_outlined, color: Color(0xFF0F766E)),
+                    tooltip: '添加图片',
+                  ),
+                  IconButton(
+                    onPressed: isBusy ? null : onPickFiles,
+                    icon: const Icon(Icons.attach_file, color: Color(0xFF0F766E)),
+                    tooltip: '添加文件',
+                  ),
+                  Expanded(
+                    child: TextField(
+                      controller: controller,
+                      enabled: !isBusy,
+                      minLines: 1,
+                      maxLines: 6,
+                      decoration: const InputDecoration(
+                        hintText: '输入问题，或直接发送图片/文件',
+                        filled: false,
+                        contentPadding: EdgeInsets.zero,
+                        border: InputBorder.none,
+                      ),
+                      onSubmitted: (_) => onSend(),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  FilledButton(
+                    onPressed: isBusy ? null : onSend,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF0F766E),
+                      foregroundColor: Colors.white,
+                    ),
+                    child: isBusy
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.arrow_upward),
+                  ),
+                ],
               ),
             ],
           ),
@@ -259,4 +361,82 @@ class _Composer extends StatelessWidget {
       ),
     );
   }
+}
+
+class _AttachmentChip extends StatelessWidget {
+  const _AttachmentChip({
+    required this.attachment,
+    required this.onRemove,
+  });
+
+  final DraftAttachment attachment;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            attachment.type == DraftAttachmentType.image
+                ? Icons.image_outlined
+                : Icons.attach_file,
+            size: 18,
+            color: const Color(0xFF0F766E),
+          ),
+          const SizedBox(width: 8),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 160),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(attachment.name, overflow: TextOverflow.ellipsis),
+                Text(
+                  attachment.sizeLabel,
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 6),
+          InkWell(
+            onTap: onRemove,
+            borderRadius: BorderRadius.circular(999),
+            child: const Padding(
+              padding: EdgeInsets.all(4),
+              child: Icon(Icons.close, size: 16),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+bool _isImageExtension(String? extension) {
+  final normalized = extension?.toLowerCase();
+  return normalized == 'png' ||
+      normalized == 'jpg' ||
+      normalized == 'jpeg' ||
+      normalized == 'webp' ||
+      normalized == 'heic';
+}
+
+String _formatBytes(int bytes) {
+  const units = ['B', 'KB', 'MB', 'GB'];
+  var size = bytes.toDouble();
+  var unitIndex = 0;
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex++;
+  }
+  final digits = size >= 100 || unitIndex == 0 ? 0 : 1;
+  return '${size.toStringAsFixed(digits)} ${units[unitIndex]}';
 }
