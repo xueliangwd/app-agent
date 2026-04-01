@@ -36,7 +36,7 @@ class LlmConfig {
     defaultValue: 'doubao-seed-1-6-251015',
   );
 
-  static String apiKeyFor(AiPlatform platform) {
+  static String defaultApiKeyFor(AiPlatform platform) {
     switch (platform) {
       case AiPlatform.openai:
         return openAIApiKey;
@@ -47,7 +47,7 @@ class LlmConfig {
     }
   }
 
-  static String baseUrlFor(AiPlatform platform) {
+  static String defaultBaseUrlFor(AiPlatform platform) {
     switch (platform) {
       case AiPlatform.openai:
         return openAIBaseUrl;
@@ -55,6 +55,17 @@ class LlmConfig {
         return deepSeekBaseUrl;
       case AiPlatform.doubao:
         return doubaoBaseUrl;
+    }
+  }
+
+  static String defaultModelsFor(AiPlatform platform) {
+    switch (platform) {
+      case AiPlatform.openai:
+        return openAIModels;
+      case AiPlatform.deepseek:
+        return deepSeekModels;
+      case AiPlatform.doubao:
+        return doubaoModels;
     }
   }
 
@@ -77,7 +88,7 @@ class LlmConfig {
             platform: platform,
             id: id,
             label: id,
-            isConfigured: apiKeyFor(platform).isNotEmpty,
+            isConfigured: defaultApiKeyFor(platform).isNotEmpty,
           ),
         )
         .toList(growable: false);

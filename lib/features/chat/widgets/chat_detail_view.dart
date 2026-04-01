@@ -3,17 +3,21 @@ import 'package:flutter/material.dart';
 
 import '../../../core/models/chat_models.dart';
 import '../data/chat_controller.dart';
+import '../data/settings_controller.dart';
 import 'message_bubble.dart';
+import 'settings_sheet.dart';
 
 class ChatDetailView extends StatefulWidget {
   const ChatDetailView({
     super.key,
     required this.controller,
+    required this.settingsController,
     required this.sessionId,
     this.embedded = false,
   });
 
   final ChatController controller;
+  final SettingsController settingsController;
   final String? sessionId;
   final bool embedded;
 
@@ -102,6 +106,7 @@ class _ChatDetailViewState extends State<ChatDetailView> {
           session: session,
           embedded: widget.embedded,
           controller: widget.controller,
+          settingsController: widget.settingsController,
         ),
         Expanded(
           child: ListView.separated(
@@ -153,11 +158,13 @@ class _Header extends StatelessWidget {
     required this.session,
     required this.embedded,
     required this.controller,
+    required this.settingsController,
   });
 
   final ChatSession session;
   final bool embedded;
   final ChatController controller;
+  final SettingsController settingsController;
 
   @override
   Widget build(BuildContext context) {
@@ -190,6 +197,18 @@ class _Header extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
+          IconButton(
+            onPressed: () {
+              showModalBottomSheet<void>(
+                context: context,
+                isScrollControlled: true,
+                showDragHandle: true,
+                builder: (_) => SettingsSheet(controller: settingsController),
+              );
+            },
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: '模型设置',
+          ),
           _ModelSwitcher(controller: controller),
         ],
       ),

@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 
 import '../core/models/ai_provider.dart';
 import '../core/models/llm_models.dart';
-import 'llm_config.dart';
+import '../core/models/provider_settings.dart';
 
 class LlmService {
   LlmService({http.Client? client}) : _client = client ?? http.Client();
@@ -13,16 +13,17 @@ class LlmService {
 
   Stream<String> streamChatCompletion({
     required AiModelOption model,
+    required ProviderSettings providerSettings,
     required List<Map<String, String>> messages,
   }) async* {
-    final apiKey = LlmConfig.apiKeyFor(model.platform);
+    final apiKey = providerSettings.apiKey.trim();
     if (apiKey.isEmpty) {
       throw LlmConfigException(_missingKeyMessage(model.platform));
     }
 
     final request = http.Request(
       'POST',
-      Uri.parse('${_normalizeBaseUrl(LlmConfig.baseUrlFor(model.platform))}/chat/completions'),
+      Uri.parse('${_normalizeBaseUrl(providerSettings.baseUrl)}/chat/completions'),
     )
       ..headers.addAll({
         'Content-Type': 'application/json',
@@ -77,15 +78,16 @@ class LlmService {
 
   Future<LlmResponse> createChatCompletion({
     required AiModelOption model,
+    required ProviderSettings providerSettings,
     required List<Map<String, String>> messages,
   }) async {
-    final apiKey = LlmConfig.apiKeyFor(model.platform);
+    final apiKey = providerSettings.apiKey.trim();
     if (apiKey.isEmpty) {
       throw LlmConfigException(_missingKeyMessage(model.platform));
     }
 
     final response = await _client.post(
-      Uri.parse('${_normalizeBaseUrl(LlmConfig.baseUrlFor(model.platform))}/chat/completions'),
+      Uri.parse('${_normalizeBaseUrl(providerSettings.baseUrl)}/chat/completions'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $apiKey',

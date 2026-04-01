@@ -2,13 +2,19 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../data/chat_controller.dart';
+import '../data/settings_controller.dart';
 import '../widgets/chat_detail_view.dart';
 import '../widgets/chat_sidebar.dart';
 
 class ChatHomePage extends StatelessWidget {
-  const ChatHomePage({super.key, required this.controller});
+  const ChatHomePage({
+    super.key,
+    required this.controller,
+    required this.settingsController,
+  });
 
   final ChatController controller;
+  final SettingsController settingsController;
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +53,7 @@ class ChatHomePage extends StatelessWidget {
                           ),
                           child: ChatDetailView(
                             controller: controller,
+                            settingsController: settingsController,
                             sessionId: controller.selectedSessionId,
                             embedded: true,
                           ),
@@ -71,6 +78,7 @@ class ChatHomePage extends StatelessWidget {
                 MaterialPageRoute<void>(
                   builder: (_) => ChatDetailView(
                     controller: controller,
+                    settingsController: settingsController,
                     sessionId: sessionId,
                   ),
                 ),

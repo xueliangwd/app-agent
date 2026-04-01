@@ -4,26 +4,33 @@ import 'package:flutter/material.dart';
 
 import '../../../core/models/ai_provider.dart';
 import '../../../core/models/chat_models.dart';
+import '../../../core/models/provider_settings.dart';
 import '../../../services/native_bridge_service.dart';
-import '../../../services/llm_config.dart';
 import '../../../services/llm_service.dart';
+import 'settings_controller.dart';
 import 'mock_chat_data.dart';
 
 class ChatController extends ChangeNotifier {
-  ChatController({LlmService? llmService}) : _llmService = llmService ?? LlmService();
+  ChatController({
+    required SettingsController settingsController,
+    LlmService? llmService,
+  })  : _settingsController = settingsController,
+        _llmService = llmService ?? LlmService() {
+    _settingsController.addListener(_handleSettingsChanged);
+  }
 
+  final SettingsController _settingsController;
   final LlmService _llmService;
   final List<ChatSession> _sessions = [];
   final Set<String> _typingSessionIds = {};
-  late final List<AiModelOption> _availableModels;
   String? _selectedSessionId;
-  AiModelOption? _selectedModel;
 
   List<ChatSession> get sessions => List.unmodifiable(_sessions);
-  List<AiModelOption> get availableModels => List.unmodifiable(_availableModels);
+  List<AiModelOption> get availableModels => _settingsController.availableModels;
+  Map<AiPlatform, ProviderSettings> get providerSettings => _settingsController.providerSettings;
 
   String? get selectedSessionId => _selectedSessionId;
-  AiModelOption? get selectedModel => _selectedModel;
+  AiModelOption? get selectedModel => _settingsController.selectedModel;
 
   ChatSession? get selectedSession {
     if (_selectedSessionId == null) {
@@ -39,9 +46,6 @@ class ChatController extends ChangeNotifier {
 
   Future<void> bootstrap() async {
     final context = await NativeBridgeService.instance.getPlatformContext();
-    _availableModels = LlmConfig.availableModels;
-    _selectedModel =
-        LlmConfig.configuredModels.firstOrNull ?? _availableModels.firstOrNull;
     _sessions
       ..clear()
       ..addAll(MockChatData.seedSessions(platformContext: context));
@@ -55,8 +59,7 @@ class ChatController extends ChangeNotifier {
   }
 
   void selectModel(AiModelOption model) {
-    _selectedModel = model;
-    notifyListeners();
+    _settingsController.selectModel(model);
   }
 
   void createSession() {
@@ -80,7 +83,7 @@ class ChatController extends ChangeNotifier {
         ),
       ],
       updatedAt: DateTime.now(),
-      lastModel: _selectedModel,
+      lastModel: selectedModel,
     );
     _sessions.insert(0, session);
     _selectedSessionId = session.id;
@@ -103,8 +106,12 @@ class ChatController extends ChangeNotifier {
     if (_typingSessionIds.contains(sessionId)) {
       return;
     }
-    final activeModel = _selectedModel;
+    final activeModel = selectedModel;
     if (activeModel == null) {
+      return;
+    }
+    final providerSettings = this.providerSettings[activeModel.platform];
+    if (providerSettings == null) {
       return;
     }
 
@@ -146,6 +153,7 @@ class ChatController extends ChangeNotifier {
       final buffer = StringBuffer();
       await for (final chunk in _llmService.streamChatCompletion(
         model: activeModel,
+        providerSettings: providerSettings,
         messages: _buildRequestMessages(current.copyWith(messages: nextMessages)),
       )) {
         buffer.write(chunk);
@@ -199,6 +207,7 @@ $error
 - 当前平台对应的 API Key 是否已传入
 - Base URL 是否正确
 - 当前模型名是否可用
+- 可以在右上角设置页里直接修改 API Key、Base URL、模型列表
 ''',
     );
 
@@ -298,6 +307,16 @@ $error
       text: hasAttachments ? null : input,
       blocks: hasAttachments ? blocks : const [],
     );
+  }
+
+  void _handleSettingsChanged() {
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _settingsController.removeListener(_handleSettingsChanged);
+    super.dispose();
   }
 }
 
