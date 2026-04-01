@@ -117,7 +117,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
                   borderRadius: BorderRadius.circular(18),
                 ),
                 child: const Text(
-                  'System AI 不需要 API Key。当前实现优先调用 iOS 原生 Foundation Models；Android 会走系统 AI 通道，并在设备不支持时返回明确提示。',
+                  'System AI 不需要 API Key。iOS 会优先调用 Foundation Models；Android 会调用 ML Kit GenAI Prompt API，并通过 AICore / Gemini Nano 在支持设备上执行。',
                   style: TextStyle(height: 1.5, color: Color(0xFF475569)),
                 ),
               ),

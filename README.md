@@ -85,7 +85,7 @@
 `System AI` 不需要 API Key。
 
 - iOS：优先调用系统原生 Foundation Models
-- Android：当前会走系统 AI 通道，并在设备不支持时返回明确提示
+- Android：已接入 ML Kit GenAI Prompt API，依赖 AICore / Gemini Nano；支持设备上会直接走系统侧 on-device AI
 
 ## 本地运行
 
@@ -108,6 +108,9 @@ fvm flutter run -d ios
 ```bash
 fvm flutter run -d android
 ```
+
+注意：
+启用 Android `System AI` 后，Android 端最低版本要求为 API 26。
 
 ## 目录结构
 
