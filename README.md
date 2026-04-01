@@ -112,6 +112,23 @@ fvm flutter run -d android
 注意：
 启用 Android `System AI` 后，Android 端最低版本要求为 API 26。
 
+## Launch Config
+
+项目已提供 VS Code / Cursor 可直接使用的启动配置：
+
+- [.vscode/launch.json](/Users/xueliang/app-agent/.vscode/launch.json)
+
+已包含：
+
+- iOS / Android 双端
+- Mock 环境
+- OpenAI / DeepSeek / 豆包
+- Custom Provider
+- System AI
+- Full Providers 汇总环境
+
+使用前把 `launch.json` 里的占位值替换成你自己的真实密钥和模型配置即可。
+
 ## 目录结构
 
 ```text

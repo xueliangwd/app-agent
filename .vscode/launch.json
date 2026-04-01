@@ -1,0 +1,181 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter: iOS Mock",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "ios",
+      "flutterMode": "debug",
+      "toolArgs": [
+        "--dart-define=OPENAI_API_KEY=",
+        "--dart-define=DEEPSEEK_API_KEY=",
+        "--dart-define=DOUBAO_API_KEY=",
+        "--dart-define=CUSTOM_API_KEY=",
+        "--dart-define=SYSTEM_MODELS=system-local"
+      ]
+    },
+    {
+      "name": "Flutter: Android Mock",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "android",
+      "flutterMode": "debug",
+      "toolArgs": [
+        "--dart-define=OPENAI_API_KEY=",
+        "--dart-define=DEEPSEEK_API_KEY=",
+        "--dart-define=DOUBAO_API_KEY=",
+        "--dart-define=CUSTOM_API_KEY=",
+        "--dart-define=SYSTEM_MODELS=system-local"
+      ]
+    },
+    {
+      "name": "Flutter: iOS OpenAI",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "ios",
+      "flutterMode": "debug",
+      "toolArgs": [
+        "--dart-define=OPENAI_API_KEY=sk-xxx",
+        "--dart-define=OPENAI_BASE_URL=https://api.openai.com/v1",
+        "--dart-define=OPENAI_MODELS=gpt-5.2,gpt-5-mini"
+      ]
+    },
+    {
+      "name": "Flutter: Android OpenAI",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "android",
+      "flutterMode": "debug",
+      "toolArgs": [
+        "--dart-define=OPENAI_API_KEY=sk-xxx",
+        "--dart-define=OPENAI_BASE_URL=https://api.openai.com/v1",
+        "--dart-define=OPENAI_MODELS=gpt-5.2,gpt-5-mini"
+      ]
+    },
+    {
+      "name": "Flutter: iOS DeepSeek",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "ios",
+      "flutterMode": "debug",
+      "toolArgs": [
+        "--dart-define=DEEPSEEK_API_KEY=sk-xxx",
+        "--dart-define=DEEPSEEK_BASE_URL=https://api.deepseek.com",
+        "--dart-define=DEEPSEEK_MODELS=deepseek-chat,deepseek-reasoner"
+      ]
+    },
+    {
+      "name": "Flutter: Android DeepSeek",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "android",
+      "flutterMode": "debug",
+      "toolArgs": [
+        "--dart-define=DEEPSEEK_API_KEY=sk-xxx",
+        "--dart-define=DEEPSEEK_BASE_URL=https://api.deepseek.com",
+        "--dart-define=DEEPSEEK_MODELS=deepseek-chat,deepseek-reasoner"
+      ]
+    },
+    {
+      "name": "Flutter: iOS Doubao",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "ios",
+      "flutterMode": "debug",
+      "toolArgs": [
+        "--dart-define=DOUBAO_API_KEY=your_ark_key",
+        "--dart-define=DOUBAO_BASE_URL=https://ark.cn-beijing.volces.com/api/v3",
+        "--dart-define=DOUBAO_MODELS=doubao-seed-1-6-251015"
+      ]
+    },
+    {
+      "name": "Flutter: Android Doubao",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "android",
+      "flutterMode": "debug",
+      "toolArgs": [
+        "--dart-define=DOUBAO_API_KEY=your_ark_key",
+        "--dart-define=DOUBAO_BASE_URL=https://ark.cn-beijing.volces.com/api/v3",
+        "--dart-define=DOUBAO_MODELS=doubao-seed-1-6-251015"
+      ]
+    },
+    {
+      "name": "Flutter: iOS Custom Provider",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "ios",
+      "flutterMode": "debug",
+      "toolArgs": [
+        "--dart-define=CUSTOM_API_KEY=sk-xxx",
+        "--dart-define=CUSTOM_BASE_URL=https://your-openai-compatible-gateway/v1",
+        "--dart-define=CUSTOM_MODELS=your-model-id"
+      ]
+    },
+    {
+      "name": "Flutter: Android Custom Provider",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "android",
+      "flutterMode": "debug",
+      "toolArgs": [
+        "--dart-define=CUSTOM_API_KEY=sk-xxx",
+        "--dart-define=CUSTOM_BASE_URL=https://your-openai-compatible-gateway/v1",
+        "--dart-define=CUSTOM_MODELS=your-model-id"
+      ]
+    },
+    {
+      "name": "Flutter: iOS System AI",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "ios",
+      "flutterMode": "debug",
+      "toolArgs": [
+        "--dart-define=SYSTEM_MODELS=system-local"
+      ]
+    },
+    {
+      "name": "Flutter: Android System AI",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "android",
+      "flutterMode": "debug",
+      "toolArgs": [
+        "--dart-define=SYSTEM_MODELS=system-local"
+      ]
+    },
+    {
+      "name": "Flutter: iOS Full Providers",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "ios",
+      "flutterMode": "debug",
+      "toolArgs": [
+        "--dart-define=OPENAI_API_KEY=sk-xxx",
+        "--dart-define=DEEPSEEK_API_KEY=sk-xxx",
+        "--dart-define=DOUBAO_API_KEY=your_ark_key",
+        "--dart-define=CUSTOM_API_KEY=sk-xxx",
+        "--dart-define=CUSTOM_BASE_URL=https://your-openai-compatible-gateway/v1",
+        "--dart-define=CUSTOM_MODELS=your-model-id",
+        "--dart-define=SYSTEM_MODELS=system-local"
+      ]
+    },
+    {
+      "name": "Flutter: Android Full Providers",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "android",
+      "flutterMode": "debug",
+      "toolArgs": [
+        "--dart-define=OPENAI_API_KEY=sk-xxx",
+        "--dart-define=DEEPSEEK_API_KEY=sk-xxx",
+        "--dart-define=DOUBAO_API_KEY=your_ark_key",
+        "--dart-define=CUSTOM_API_KEY=sk-xxx",
+        "--dart-define=CUSTOM_BASE_URL=https://your-openai-compatible-gateway/v1",
+        "--dart-define=CUSTOM_MODELS=your-model-id",
+        "--dart-define=SYSTEM_MODELS=system-local"
+      ]
+    }
+  ]
+}
