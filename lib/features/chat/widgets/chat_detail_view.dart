@@ -27,17 +27,21 @@ class ChatDetailView extends StatefulWidget {
 
 class _ChatDetailViewState extends State<ChatDetailView> {
   late final TextEditingController _inputController;
+  late final ScrollController _scrollController;
   final List<DraftAttachment> _draftAttachments = [];
+  String? _lastScrollSignature;
 
   @override
   void initState() {
     super.initState();
     _inputController = TextEditingController();
+    _scrollController = ScrollController();
   }
 
   @override
   void dispose() {
     _inputController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -100,6 +104,8 @@ class _ChatDetailViewState extends State<ChatDetailView> {
       return const SizedBox.shrink();
     }
 
+    _scheduleAutoScroll(session);
+
     final body = Column(
       children: [
         _Header(
@@ -110,6 +116,7 @@ class _ChatDetailViewState extends State<ChatDetailView> {
         ),
         Expanded(
           child: ListView.separated(
+            controller: _scrollController,
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
             itemCount: session.messages.length,
             separatorBuilder: (_, _) => const SizedBox(height: 12),
@@ -150,6 +157,26 @@ class _ChatDetailViewState extends State<ChatDetailView> {
       backgroundColor: Colors.transparent,
       body: SafeArea(child: body),
     );
+  }
+
+  void _scheduleAutoScroll(ChatSession session) {
+    final lastMessage = session.messages.isEmpty ? null : session.messages.last;
+    final signature =
+        '${session.id}:${session.messages.length}:${lastMessage?.plainPreview.length ?? 0}';
+    if (_lastScrollSignature == signature) {
+      return;
+    }
+    _lastScrollSignature = signature;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) {
+        return;
+      }
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+      );
+    });
   }
 }
 
@@ -244,7 +271,7 @@ class _ModelSwitcher extends StatelessWidget {
                   for (final option in controller.availableModels)
                     ListTile(
                       leading: Icon(
-                        option == selectedModel
+                        option.sameIdentity(selectedModel)
                             ? Icons.radio_button_checked
                             : Icons.radio_button_off,
                         color: const Color(0xFF0F766E),

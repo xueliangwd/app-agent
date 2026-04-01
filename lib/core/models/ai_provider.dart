@@ -29,4 +29,22 @@ class AiModelOption {
   }
 
   String get displayName => '$platformLabel · $label';
+
+  bool sameIdentity(AiModelOption? other) {
+    if (other == null) {
+      return false;
+    }
+    return platform == other.platform && id == other.id;
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) {
+      return true;
+    }
+    return other is AiModelOption && sameIdentity(other);
+  }
+
+  @override
+  int get hashCode => Object.hash(platform, id);
 }
