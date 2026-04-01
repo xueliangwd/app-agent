@@ -35,6 +35,19 @@ class LlmConfig {
     'DOUBAO_MODELS',
     defaultValue: 'doubao-seed-1-6-251015',
   );
+  static const customApiKey = String.fromEnvironment('CUSTOM_API_KEY');
+  static const customBaseUrl = String.fromEnvironment(
+    'CUSTOM_BASE_URL',
+    defaultValue: 'https://api.openai.com/v1',
+  );
+  static const customModels = String.fromEnvironment(
+    'CUSTOM_MODELS',
+    defaultValue: '',
+  );
+  static const systemModels = String.fromEnvironment(
+    'SYSTEM_MODELS',
+    defaultValue: 'system-local',
+  );
 
   static String defaultApiKeyFor(AiPlatform platform) {
     switch (platform) {
@@ -44,6 +57,10 @@ class LlmConfig {
         return deepSeekApiKey;
       case AiPlatform.doubao:
         return doubaoApiKey;
+      case AiPlatform.custom:
+        return customApiKey;
+      case AiPlatform.system:
+        return '';
     }
   }
 
@@ -55,6 +72,10 @@ class LlmConfig {
         return deepSeekBaseUrl;
       case AiPlatform.doubao:
         return doubaoBaseUrl;
+      case AiPlatform.custom:
+        return customBaseUrl;
+      case AiPlatform.system:
+        return '';
     }
   }
 
@@ -66,6 +87,10 @@ class LlmConfig {
         return deepSeekModels;
       case AiPlatform.doubao:
         return doubaoModels;
+      case AiPlatform.custom:
+        return customModels;
+      case AiPlatform.system:
+        return systemModels;
     }
   }
 
@@ -73,6 +98,8 @@ class LlmConfig {
         ..._parseModels(AiPlatform.openai, openAIModels),
         ..._parseModels(AiPlatform.deepseek, deepSeekModels),
         ..._parseModels(AiPlatform.doubao, doubaoModels),
+        ..._parseModels(AiPlatform.custom, customModels),
+        ..._parseModels(AiPlatform.system, systemModels),
       ];
 
   static List<AiModelOption> get configuredModels =>

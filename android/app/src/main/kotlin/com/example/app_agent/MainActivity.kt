@@ -17,6 +17,13 @@ class MainActivity : FlutterActivity() {
                     "getPlatformContext" -> {
                         result.success("Android ${Build.VERSION.RELEASE} · ${Build.MODEL}")
                     }
+                    "generateSystemAIResponse" -> {
+                        result.error(
+                            "system_ai_unavailable",
+                            "Android System AI currently requires device-side AICore / Gemini Nano support. This build exposes the provider entry and returns a clear fallback on unsupported devices.",
+                            null
+                        )
+                    }
                     else -> result.notImplemented()
                 }
             }

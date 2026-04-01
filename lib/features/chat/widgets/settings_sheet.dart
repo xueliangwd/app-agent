@@ -63,6 +63,8 @@ class _SettingsSheetState extends State<SettingsSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final isSystem = _platform == AiPlatform.system;
+    final isCustom = _platform == AiPlatform.custom;
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
@@ -72,30 +74,55 @@ class _SettingsSheetState extends State<SettingsSheet> {
           children: [
             const Text('模型设置', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
             const SizedBox(height: 12),
-            SegmentedButton<AiPlatform>(
-              segments: AiPlatform.values
+            DropdownButtonFormField<AiPlatform>(
+              initialValue: _platform,
+              items: AiPlatform.values
                   .map(
-                    (platform) => ButtonSegment<AiPlatform>(
+                    (platform) => DropdownMenuItem(
                       value: platform,
-                      label: Text(_platformLabel(platform)),
+                      child: Text(_platformLabel(platform)),
                     ),
                   )
                   .toList(),
-              selected: {_platform},
-              onSelectionChanged: (selection) => _loadPlatform(selection.first),
+              onChanged: (platform) {
+                if (platform != null) {
+                  _loadPlatform(platform);
+                }
+              },
+              decoration: const InputDecoration(labelText: '提供方'),
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: _apiKeyController,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'API Key'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _baseUrlController,
-              decoration: const InputDecoration(labelText: 'Base URL'),
-            ),
-            const SizedBox(height: 12),
+            if (!isSystem) ...[
+              TextField(
+                controller: _apiKeyController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: isCustom ? 'API Key（自定义提供方）' : 'API Key',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _baseUrlController,
+                decoration: InputDecoration(
+                  labelText: isCustom ? 'Base URL（OpenAI-compatible）' : 'Base URL',
+                ),
+              ),
+              const SizedBox(height: 12),
+            ] else ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: const Text(
+                  'System AI 不需要 API Key。当前实现优先调用 iOS 原生 Foundation Models；Android 会走系统 AI 通道，并在设备不支持时返回明确提示。',
+                  style: TextStyle(height: 1.5, color: Color(0xFF475569)),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
             TextField(
               controller: _modelsController,
               maxLines: 3,
@@ -138,6 +165,10 @@ class _SettingsSheetState extends State<SettingsSheet> {
         return 'DeepSeek';
       case AiPlatform.doubao:
         return '豆包';
+      case AiPlatform.custom:
+        return 'Custom';
+      case AiPlatform.system:
+        return 'System AI';
     }
   }
 }

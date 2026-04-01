@@ -1,4 +1,4 @@
-enum AiPlatform { openai, deepseek, doubao }
+enum AiPlatform { openai, deepseek, doubao, custom, system }
 
 class AiModelOption {
   const AiModelOption({
@@ -21,6 +21,10 @@ class AiModelOption {
         return 'DeepSeek';
       case AiPlatform.doubao:
         return '豆包';
+      case AiPlatform.custom:
+        return 'Custom';
+      case AiPlatform.system:
+        return 'System AI';
     }
   }
 

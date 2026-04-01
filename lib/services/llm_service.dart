@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../core/models/ai_provider.dart';
 import '../core/models/llm_models.dart';
 import '../core/models/provider_settings.dart';
+import 'native_bridge_service.dart';
 
 class LlmService {
   LlmService({http.Client? client}) : _client = client ?? http.Client();
@@ -16,6 +17,15 @@ class LlmService {
     required ProviderSettings providerSettings,
     required List<Map<String, String>> messages,
   }) async* {
+    if (model.platform == AiPlatform.system) {
+      final prompt = messages.lastOrNull?['content'] ?? '';
+      final result = await NativeBridgeService.instance.generateSystemAiResponse(
+        prompt: prompt,
+      );
+      yield result;
+      return;
+    }
+
     final apiKey = providerSettings.apiKey.trim();
     if (apiKey.isEmpty) {
       throw LlmConfigException(_missingKeyMessage(model.platform));
@@ -196,8 +206,16 @@ class LlmService {
         return '缺少 DEEPSEEK_API_KEY。请使用 --dart-define=DEEPSEEK_API_KEY=你的密钥。';
       case AiPlatform.doubao:
         return '缺少 DOUBAO_API_KEY 或 ARK_API_KEY。请使用 --dart-define=DOUBAO_API_KEY=你的密钥。';
+      case AiPlatform.custom:
+        return '缺少 Custom Provider 的 API Key，请在设置页填写。';
+      case AiPlatform.system:
+        return '当前设备不支持 System AI，或系统 AI 尚未启用。';
     }
   }
+}
+
+extension<T> on List<T> {
+  T? get lastOrNull => isEmpty ? null : last;
 }
 
 class LlmConfigException implements Exception {

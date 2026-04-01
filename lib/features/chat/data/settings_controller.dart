@@ -23,7 +23,8 @@ class SettingsController extends ChangeNotifier {
               platform: settings.platform,
               id: id,
               label: id,
-              isConfigured: settings.isConfigured,
+              isConfigured:
+                  settings.platform == AiPlatform.system ? true : settings.isConfigured,
             ),
           ),
         )

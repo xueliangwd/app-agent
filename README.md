@@ -36,8 +36,11 @@
 - OpenAI
 - DeepSeek
 - 豆包 / 火山方舟
+- Custom（自定义 OpenAI-compatible 提供方）
+- System AI（系统原生 AI）
 
 启动时通过 `dart-define` 传入配置。
+这些值只作为首次默认值，后续可直接在 App 内设置页修改并本地保存。
 
 ### OpenAI
 
@@ -68,6 +71,21 @@
 ```bash
 --dart-define=ARK_API_KEY=your_ark_key
 ```
+
+### Custom
+
+```bash
+--dart-define=CUSTOM_API_KEY=sk-xxx \
+--dart-define=CUSTOM_BASE_URL=https://your-openai-compatible-gateway/v1 \
+--dart-define=CUSTOM_MODELS=your-model-id
+```
+
+### System AI
+
+`System AI` 不需要 API Key。
+
+- iOS：优先调用系统原生 Foundation Models
+- Android：当前会走系统 AI 通道，并在设备不支持时返回明确提示
 
 ## 本地运行
 
